@@ -1,0 +1,10 @@
+# Start Generation Here
+node_modules/
+dist/
+.env
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+# End Generation Here
