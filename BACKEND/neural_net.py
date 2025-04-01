@@ -67,4 +67,5 @@ model = Sequential([
 ])
 
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-model.fit(X, y, epochs=20, validation_split=0.2)
+model.fit(X, y, epochs=1000, validation_split=0.2)
+model.save('my_model')
