@@ -29,8 +29,6 @@ def extract_features(file_path, max_pad_len=128):
 X, y = [], []
 genres = os.listdir(DATASET_PATH)
 
-genres = os.listdir(DATASET_PATH)
-
 for genre in genres:
     genre_path = os.path.join(DATASET_PATH, genre)
     if not os.path.isdir(genre_path):
@@ -40,7 +38,7 @@ for genre in genres:
         features = extract_features(file_path)
         if features is not None:
             X.append(features)
-            y.append(genre) 
+            y.append(genre)
 
 X = np.array(X)
 y = np.array(y)
@@ -51,21 +49,43 @@ encoder = LabelEncoder()
 y = encoder.fit_transform(y)
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.regularizers import l2
 
 # Reshape X for CNN input
 X = X[..., np.newaxis]  # Add channel dimension
 
+# Define and compile the model
 model = Sequential([
-    Conv2D(32, (3, 3), activation='relu', input_shape=X.shape[1:]),
+    Conv2D(32, (3, 3), activation='relu', input_shape=X.shape[1:], kernel_regularizer=l2(0.0001)),
     MaxPooling2D(2, 2),
-    Conv2D(64, (3, 3), activation='relu'),
+    Dropout(0.1),  # Reduced dropout rate
+    Conv2D(64, (3, 3), activation='relu', kernel_regularizer=l2(0.01)),
     MaxPooling2D(2, 2),
+    Dropout(0.2),  # Reduced dropout rate
     Flatten(),
-    Dense(64, activation='relu'),
+    Dense(64, activation='relu', kernel_regularizer=l2(0.01)),
+    Dropout(0.3),  # Reduced dropout rate
     Dense(len(genres), activation='softmax')  # Output layer with number of genres
 ])
 
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-model.fit(X, y, epochs=1000, validation_split=0.2)
-model.save('my_model')
+model.fit(X, y, epochs=100, validation_split=0.2)
+
+# Predict and print the label for each file
+for genre in genres:
+    genre_path = os.path.join(DATASET_PATH, genre)
+    if not os.path.isdir(genre_path):
+        continue  # Skip if not a directory
+    for file in os.listdir(genre_path):
+        file_path = os.path.join(genre_path, file)
+        features = extract_features(file_path)
+        if features is not None:
+            features_reshaped = features[np.newaxis, ..., np.newaxis]  # Reshape for prediction
+            prediction = model.predict(features_reshaped)
+            predicted_label = encoder.inverse_transform([np.argmax(prediction)])
+            
+            # Print the file and its predicted label
+            print(f"File: {file}, Predicted Label: {predicted_label[0]}")
+
+model.save('my_model.keras')
